@@ -22,7 +22,7 @@ gradd_logit <- function(y, X, theta0, epsilon = 1e-07, a = .1,
     Xt <- X%*%theta_old
     ht <- c(1/(1+exp(Xt)))
     DJ <- -colMeans(ht*X*c(exp(Xt)*(y-1)+y))
-    theta <- theta_old - a*DJ - lambda*2*theta_old
+    theta <- theta_old - a*DJ - a*lambda*2*theta_old
     Delta <- max((theta-theta_old)^2)
     cat("Iteration:", iter, "Delta:", Delta, "\n")
     theta_old <- theta
