@@ -1,0 +1,193 @@
+---
+title: "Boosting and Random Forests"
+output: ioslides_presentation
+---
+
+## Boosting
+
+- Boosting refers to a general and provably effective method of producing a very accurate classifier by combining rough and moderately inaccurate rules of thumb.
+
+- It is based on the observation that finding many rough rules of
+thumb can be a lot easier than finding a single, highly accurate
+classifier.
+
+- To begin, we define an algorithm for finding the rules of thumb,
+which we call a **weak learner**.
+
+- The boosting algorithm repeatedly calls this weak learner, each time
+feeding it a different distribution over the training data
+
+## Weak Learner
+
+
+- Need not to be very accurate
+  - Better than random guess
+  - Examples:
+    - Neural Network
+    - Logistic regression
+    - Decision trees/Decision stump
+    - Essentially any classifier
+
+## Decision Stump
+
+**1-Level decision tree**
+  
+  - A simple test based on one feature
+  
+    - If an email contains the word "money", it is spam; otherwise, it is a non-spam
+  
+  - Moderately accurate
+  
+  - Geometry: horizontal or vertical line
+
+## Limitation of Weak Learner
+
+- Might not be able to fit the training data well (high bias)
+
+- .... but many wear learners may do the job
+
+## Adaboost
+
+- `adaBoost` picks its weak learners $$h(x_i)$$ in such a fashion that each newly added weak learner is able to infer something new about the data
+
+- `adaBoost` maintains a weight distribution `D` among all data points. Each data point is assigned a weight $D_i$ indicting its importance
+
+- by manipulating the weight distribution, we can guide the weak learner to pay attention to different part of the data
+
+## Adaboost: idea
+
+- AdaBoost proceeds by rounds
+  
+  - In each round, we ask the weak learner to focus on hard data points that previous weak learners cannot handle well
+  
+  - Technically, in each round, we increase the weights of misclassified data points, and decrease the weights of correctly classified data points
+
+## Adaboost sketch of the algorithm
+
+- We have $\{y_i, x_i\}$, $i=1,\ldots,n$ where $y_i = \{-1, 1\}$
+- A weak learner is defined as a funcion $$h:\chi \to {-1,1}$$ 
+- Let $D_i$, such that $\sum_{i=1}^n D_i = 1$
+- Empirical weighted error rate of weak learner $h_m$
+  $$
+  \begin{align*}
+  \epsilon &=&  \sum_{i=1}^n D_i \delta(h_m(x_i) \neq y_i) \\
+           &=&  \frac{1}{2}\sum_{i=1}^n D_i - \frac{1}{2}\sum_{i=1}^n y_i h_m(x_i)
+           \end{align*}
+           $$
+    
+  
+
+
+## Algorithm
+- Step 1:
+    - train the weak learner $h_m$ according to the weights $D^m_i$
+
+- Step 2:
+  
+    - observe error of the learner $h_m$ and weights $D^m_i$ 
+    $$\epsilon_m = \Pr_{D^m}[h_m(x)\neq y_i], \quad \alpha_t = \frac{1}{2}\ln\left(\frac{1-\epsilon_m}{\epsilon_m}\right)$$
+
+- Step 3: 
+  
+    - update Distribution D for next round, emphasizing misclassified points
+    $$D_i^{m+1} \propto D_i^m \exp(-y_i\alpha_m h_m(x_i))$$
+
+## Properties
+
+After each boosting iteration, assuming we can find a
+component classifier whose weighted error is better than
+chance ($0.5$), the combined classifier
+$$
+H(x) = \alpha_1 h_1(x) + \ldots + \alpha_m h_m(x) 
+$$
+is guaranteed to have a lower exponential loss over the training sample
+
+
+## Practical advantages of AdaBoost
+
+- **fast**
+- **simple** and easy to program
+- **no** parameters to **tune** (except M - the number of iterations)
+- flexible — can combine with any learning algorithm
+- no prior knowledge needed about weak learner
+- provably effective, provided can consistently find rough rules of thumb
+    - shift in mind set — goal now is merely to find classifiers barely better than random guessing
+
+## Adabost in R
+
+adaBoost is implemented in R in the package `ada`
+
+```{r}
+library("ada")
+```
+
+
+## Example
+
+```{r, eval=FALSE}
+colnames(X_train) <- gsub(" ", ".", colnames(X_train))
+colnames(X_test)  <- gsub(" ", ".", colnames(X_test))
+
+colnames(X_train) <- gsub("-", ".", colnames(X_train))
+colnames(X_test)  <- gsub("-", ".", colnames(X_test))
+
+out  = ada(x = X_train[,-1], y = y_train)
+pred = predict(out, as.data.frame(X_test[,-1]))
+confusionMatrix(pred, y_test)
+```
+
+
+## Random forest
+
+- Intuition of Random Forest
+- The Random Forest Algorithm
+- De-correlation gives better accuracy
+- Out-of-bag error (OOB-error)
+
+## Random forest algorithm
+
+1. For b = 1 to B
+    a. Draw a bootstrap sample of size $n$ from training
+    b. Grow a forest tree to the bootstrapped data
+2. Output the ensamble of trees $\{T_b\}_{1}^B$
+
+To make a prediction
+
+- Regression: $f = \frac{1}{B}\sum_{i=1}^B T_b$
+- Classification: $majority voting$
+
+## Random forest in `R`
+
+```{r, eval=FALSE}
+library(randomForest)
+rf <- randomForest(x = X_train[,-1], y = factor(y_train), 
+                   mtry = sqrt(33) , ntree = 40)
+confusionMatrix(predict(rf, X_test), y_test)
+```
+
+## Parameter tuning with `Caret`
+
+```{r, eval=FALSE}
+eGrid <- expand.grid(mtry = c(5, 8, 12))
+
+Control <- trainControl(method = "repeatedcv", 
+                        repeats = 3, 
+                        verboseIter =TRUE)
+
+netFit <- train(x = X_train[,-1], y = factor(y_train), 
+                method = "rf",
+                tuneGrid = eGrid,
+                trControl = Control)
+plot(neFit)
+
+```
+
+
+
+
+  
+
+
+
+
+
